@@ -2,7 +2,6 @@ const path = require('path')
 const http = require('http')
 const express = require('express')
 const socketio = require('socket.io')
-
 const app = express()
 const server = http.createServer(app)
 const io = socketio(server)
@@ -20,6 +19,10 @@ io.on('connection', (socket) => {
 
     socket.on('sendMessage', (message) => {
         io.emit('message', message)
+    })
+
+    socket.on('sendLocation', (coords) => {
+        io.emit('message', 'https://google.com/maps?q='+coords.latitude+','+coords.longitude)
     })
 
     socket.on('disconnect', () => {
