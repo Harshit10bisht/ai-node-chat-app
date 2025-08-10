@@ -61,6 +61,7 @@ npm run dev
 - **WebSocket Support:** Vercel doesn't natively support persistent WebSocket connections, but Socket.IO will fall back to polling transport when WebSockets aren't available
 - **Serverless Limitations:** The app is configured to work with Vercel's serverless functions
 - **CORS:** The app includes CORS configuration to allow connections from any origin
+- **Socket.IO Client:** Uses CDN version to avoid serverless limitations
 
 ### Troubleshooting
 
@@ -77,6 +78,11 @@ npm run dev
 3. **For WebSocket issues:**
    - The app is configured to use polling as a fallback
    - This ensures compatibility with Vercel's serverless environment
+
+4. **If you get "404 Not Found" for socket.io.js:**
+   - The app now uses a CDN version of Socket.IO client
+   - Make sure the chat.html file includes the CDN script tag
+   - Check that the CDN URL is accessible from your deployment region
 
 ## Project Structure
 
