@@ -1,4 +1,9 @@
-const socket = io()
+// Connect to Socket.IO server
+const socket = io({
+    transports: ['polling', 'websocket'],
+    upgrade: true,
+    rememberUpgrade: true
+})
 
 //Elements
 const $messageForm = document.querySelector('#message-form')
