@@ -87,6 +87,7 @@ button:disabled {
 
 .chat {
     display: flex;
+    min-height: 100vh;
 }
 
 .chat__sidebar {
@@ -94,7 +95,10 @@ button:disabled {
     color: white;
     background: #333744;
     width: 225px;
-    overflow-y: scroll
+    min-width: 225px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Chat styles */
@@ -104,6 +108,7 @@ button:disabled {
     display: flex;
     flex-direction: column;
     max-height: 100vh;
+    min-width: 0;
 }
 
 .chat__messages {
@@ -116,12 +121,15 @@ button:disabled {
 
 .message {
     margin-bottom: 16px;   
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .message__name {
     font-weight: 600;
     font-size: 14px;
     margin-right: 8px;
+    word-break: break-word;
 }
 
 .message__meta {
@@ -146,6 +154,7 @@ button:disabled {
     display: flex;
     flex-grow: 1;
     margin-right: 16px;
+    min-width: 0;
 }
 
 .compose input {
@@ -154,10 +163,12 @@ button:disabled {
     padding: 12px;
     margin: 0 16px 0 0;
     flex-grow: 1;
+    min-width: 0;
 }
 
 .compose button {
     font-size: 14px;
+    flex-shrink: 0;
 }
 
 /* Chat Sidebar Styles */
@@ -167,6 +178,8 @@ button:disabled {
     font-size: 22px;
     background: #2c2f3a;
     padding: 24px;   
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .list-title {
@@ -180,4 +193,11 @@ button:disabled {
     list-style-type: none;
     font-weight: 300;
     padding: 12px 24px 0 24px;
+}
+
+.users li {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 8px;
+    line-height: 1.3;
 }

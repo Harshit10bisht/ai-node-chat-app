@@ -1,8 +1,10 @@
-// Connect to Socket.IO server
+// Connect to Socket.IO server with polling transport for Vercel compatibility
 const socket = io({
-    transports: ['polling', 'websocket'],
-    upgrade: true,
-    rememberUpgrade: true
+    transports: ['polling'],
+    upgrade: false,
+    rememberUpgrade: false,
+    timeout: 20000,
+    forceNew: true
 })
 
 //Elements
@@ -18,7 +20,7 @@ const locationMessageTemplates = document.querySelector('#location-message-templ
 const sidebarTemplates = document.querySelector('#sidebar-template').innerHTML
 
 //Options
-const {username, room} = Qs.parse(location.search, {ignoreQueryPrefix: true})
+const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true })
 
 const autoScroll = () => {
     //New message element
@@ -38,7 +40,7 @@ const autoScroll = () => {
     //How far have i scrolled?
     const scrollOffset = $messages.scrollTop + visibleHeight
 
-    if(containerHeight - newMessageHeight <= scrollOffset){
+    if (containerHeight - newMessageHeight <= scrollOffset) {
         $messages.scrollTop = $messages.scrollHeight
     }
 }
@@ -65,7 +67,7 @@ socket.on('locationMessage', (message) => {
     autoScroll()
 })
 
-socket.on('roomData', ({room, users}) => {
+socket.on('roomData', ({ room, users }) => {
     const html = Mustache.render(sidebarTemplates, {
         room,
         users
@@ -85,7 +87,7 @@ $messageForm.addEventListener('submit', (e) => {
         $messageFormInput.value = ''
         $messageFormInput.focus()
 
-        if(error) {
+        if (error) {
             return console.log(error)
         }
 
@@ -94,7 +96,7 @@ $messageForm.addEventListener('submit', (e) => {
 })
 
 $sendLocationButton.addEventListener('click', () => {
-    if(!navigator.geolocation) {
+    if (!navigator.geolocation) {
         return alert('not support')
     }
 
@@ -104,7 +106,7 @@ $sendLocationButton.addEventListener('click', () => {
         socket.emit('sendLocation', {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
-        },() => {
+        }, () => {
             $sendLocationButton.removeAttribute('disabled')
             console.log('Location shared!')
         })
@@ -112,8 +114,8 @@ $sendLocationButton.addEventListener('click', () => {
 
 })
 
-socket.emit('join', {username, room}, (error) => {
-    if(error) {
+socket.emit('join', { username, room }, (error) => {
+    if (error) {
         alert(error)
         location.href = './'
     }

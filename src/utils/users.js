@@ -1,10 +1,11 @@
 const users = []
+const { aiAgent } = require('./aiAgent')
 
-const addUser = ({id, username, room}) => {
+const addUser = ({ id, username, room }) => {
     username = username.trim().toLowerCase()
     room = room.trim().toLowerCase()
 
-    if(!username || !room) {
+    if (!username || !room) {
         return {
             error: 'Username and room are required'
         }
@@ -14,21 +15,21 @@ const addUser = ({id, username, room}) => {
         return user.room === room && user.username === username
     })
 
-    if(existingUser) {
+    if (existingUser) {
         return {
             error: 'Username is in use!'
         }
     }
 
-    const user = {id, username, room}
+    const user = { id, username, room }
     users.push(user)
-    return {user}
+    return { user }
 }
 
 const removeUser = (id) => {
     const index = users.findIndex((user) => user.id === id)
 
-    if(index !== -1) {
+    if (index !== -1) {
         return users.splice(index, 1)[0]
     }
 }
@@ -39,12 +40,26 @@ const getUser = (id) => {
 
 const getUsersInRoom = (room) => {
     room = room.trim().toLowerCase()
-    return users.filter((user) => user.room === room)
+    const roomUsers = users.filter((user) => user.room === room)
+
+    // Add AI Agent to the room users list
+    const agentInRoom = {
+        id: aiAgent.id,
+        username: aiAgent.name,
+        room: room
+    }
+
+    return [...roomUsers, agentInRoom]
+}
+
+const getAgentInfo = () => {
+    return aiAgent
 }
 
 module.exports = {
     addUser,
     removeUser,
     getUser,
-    getUsersInRoom
+    getUsersInRoom,
+    getAgentInfo
 }
