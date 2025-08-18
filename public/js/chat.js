@@ -1,43 +1,65 @@
-// Connect to Socket.IO server with polling transport for Vercel compatibility
-const socket = io({
-    transports: ['polling'],
-    upgrade: false,
-    rememberUpgrade: false,
-    timeout: 20000,
-    forceNew: true
-})
+// Initialize Pusher client with dynamic configuration
+let pusher = null
 
-//Elements
+// Function to initialize Pusher with credentials from server
+async function initializePusher() {
+    try {
+        // Get Pusher credentials from server
+        const response = await fetch('/api/pusher-config')
+        const config = await response.json()
+
+        if (config.error) {
+            console.error('Failed to get Pusher config:', config.error)
+            return false
+        }
+
+        // Initialize Pusher with server-provided credentials
+        pusher = new Pusher(config.key, {
+            cluster: config.cluster
+        })
+
+        return true
+    } catch (error) {
+        console.error('Error initializing Pusher:', error)
+        return false
+    }
+}
+
+// User state
+let currentUser = null
+let currentRoom = null
+
+// Elements
 const $messageForm = document.querySelector('#message-form')
 const $messageFormInput = document.querySelector('input')
 const $messageFormButton = document.querySelector('button')
 const $sendLocationButton = document.querySelector('#send-location')
 const $messages = document.querySelector('#messages')
 
-//Templates
+// Templates
 const messageTemplates = document.querySelector('#message-template').innerHTML
 const locationMessageTemplates = document.querySelector('#location-message-template').innerHTML
 const sidebarTemplates = document.querySelector('#sidebar-template').innerHTML
 
-//Options
+// Options
 const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true })
 
 const autoScroll = () => {
-    //New message element
+    // New message element
     const $newMessage = $messages.lastElementChild
 
-    //Height of new message
+    // Height of new message
     const newMessageStyles = getComputedStyle($newMessage)
     const newMessageMargin = parseInt(newMessageStyles.marginBottom)
     const newMessageHeight = $newMessage.offsetHeight + newMessageMargin
 
-    //Visible Height 
+    // Visible Height 
     const visibleHeight = $messages.offsetHeight
 
-    //Height of messages container
+    // Height of messages container
     const containerHeight = $messages.scrollHeight
 
-    //How far have i scrolled?
+    // How far have i scrolled?
     const scrollOffset = $messages.scrollTop + visibleHeight
 
     if (containerHeight - newMessageHeight <= scrollOffset) {
@@ -45,78 +67,220 @@ const autoScroll = () => {
     }
 }
 
-socket.on('message', (message) => {
-    console.log(message)
-    const html = Mustache.render(messageTemplates, {
-        username: message.username,
-        message: message.text,
-        createdAt: moment(message.createdAt).format('h:mm A')
-    })
-    $messages.insertAdjacentHTML('beforeend', html)
-    autoScroll()
-})
+// Join room function
+async function joinRoom(username, room) {
+    try {
+        // Initialize Pusher first
+        const pusherInitialized = await initializePusher()
+        if (!pusherInitialized) {
+            alert('Failed to initialize real-time connection')
+            return
+        }
 
-socket.on('locationMessage', (message) => {
-    console.log(message)
-    const html = Mustache.render(locationMessageTemplates, {
-        username: message.username,
-        url: message.url,
-        createdAt: moment(message.createdAt).format('h:mm A')
-    })
-    $messages.insertAdjacentHTML('beforeend', html)
-    autoScroll()
-})
+        const response = await fetch('/api/join', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, room })
+        })
 
-socket.on('roomData', ({ room, users }) => {
-    const html = Mustache.render(sidebarTemplates, {
-        room,
-        users
-    })
-    document.querySelector('#sidebar').innerHTML = html
-})
+        const data = await response.json()
 
-$messageForm.addEventListener('submit', (e) => {
+        if (data.error) {
+            alert(data.error)
+            location.href = './'
+            return
+        }
+
+        currentUser = data.user
+        currentRoom = room
+
+        // Subscribe to room channel
+        const channel = pusher.subscribe(`room-${room}`)
+
+        // Listen for messages
+        channel.bind('message', (message) => {
+            console.log(message)
+            const html = Mustache.render(messageTemplates, {
+                username: message.username,
+                message: message.text,
+                createdAt: moment(message.createdAt).format('h:mm A')
+            })
+            $messages.insertAdjacentHTML('beforeend', html)
+            autoScroll()
+        })
+
+        // Listen for location messages
+        channel.bind('location-message', (message) => {
+            console.log(message)
+            const html = Mustache.render(locationMessageTemplates, {
+                username: message.username,
+                url: message.url,
+                createdAt: moment(message.createdAt).format('h:mm A')
+            })
+            $messages.insertAdjacentHTML('beforeend', html)
+            autoScroll()
+        })
+
+        // Listen for room data updates
+        channel.bind('room-data', (data) => {
+            const html = Mustache.render(sidebarTemplates, {
+                room: data.room,
+                users: data.users
+            })
+            document.querySelector('#sidebar').innerHTML = html
+        })
+
+        // Listen for user joined events
+        channel.bind('user-joined', (data) => {
+            const html = Mustache.render(messageTemplates, {
+                username: data.message.username,
+                message: data.message.text,
+                createdAt: moment(data.message.createdAt).format('h:mm A')
+            })
+            $messages.insertAdjacentHTML('beforeend', html)
+            autoScroll()
+        })
+
+        // Listen for user left events
+        channel.bind('user-left', (data) => {
+            const html = Mustache.render(messageTemplates, {
+                username: data.message.username,
+                message: data.message.text,
+                createdAt: moment(data.message.createdAt).format('h:mm A')
+            })
+            $messages.insertAdjacentHTML('beforeend', html)
+            autoScroll()
+        })
+
+    } catch (error) {
+        console.error('Error joining room:', error)
+        alert('Error joining room')
+        location.href = './'
+    }
+}
+
+// Send message function
+async function sendMessage(message) {
+    if (!currentUser) return
+
+    try {
+        const response = await fetch('/api/message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId: currentUser.id, message })
+        })
+
+        const data = await response.json()
+
+        if (data.error) {
+            console.log(data.error)
+            return false
+        }
+
+        return true
+    } catch (error) {
+        console.error('Error sending message:', error)
+        return false
+    }
+}
+
+// Send location function
+async function sendLocation(coords) {
+    if (!currentUser) return
+
+    try {
+        const response = await fetch('/api/location', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId: currentUser.id, coords })
+        })
+
+        const data = await response.json()
+
+        if (data.error) {
+            console.log(data.error)
+            return false
+        }
+
+        return true
+    } catch (error) {
+        console.error('Error sending location:', error)
+        return false
+    }
+}
+
+// Leave room function
+async function leaveRoom() {
+    if (!currentUser) return
+
+    try {
+        await fetch('/api/leave', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId: currentUser.id })
+        })
+
+        // Unsubscribe from channel
+        if (currentRoom && pusher) {
+            pusher.unsubscribe(`room-${currentRoom}`)
+        }
+    } catch (error) {
+        console.error('Error leaving room:', error)
+    }
+}
+
+// Event listeners
+$messageForm.addEventListener('submit', async (e) => {
     e.preventDefault()
 
     $messageFormButton.setAttribute('disabled', 'disabled')
 
     const message = e.target.elements.message.value
 
-    socket.emit('sendMessage', message, (error) => {
-        $messageFormButton.removeAttribute('disabled')
-        $messageFormInput.value = ''
-        $messageFormInput.focus()
+    const success = await sendMessage(message)
 
-        if (error) {
-            return console.log(error)
-        }
+    $messageFormButton.removeAttribute('disabled')
+    $messageFormInput.value = ''
+    $messageFormInput.focus()
 
+    if (success) {
         console.log('Message Delivered!')
-    })
+    }
 })
 
-$sendLocationButton.addEventListener('click', () => {
+$sendLocationButton.addEventListener('click', async () => {
     if (!navigator.geolocation) {
-        return alert('not support')
+        return alert('Geolocation not supported')
     }
 
     $sendLocationButton.setAttribute('disabled', 'disabled')
 
-    navigator.geolocation.getCurrentPosition((position) => {
-        socket.emit('sendLocation', {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const success = await sendLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
-        }, () => {
-            $sendLocationButton.removeAttribute('disabled')
-            console.log('Location shared!')
         })
+
+        $sendLocationButton.removeAttribute('disabled')
+
+        if (success) {
+            console.log('Location shared!')
+        }
     })
-
 })
 
-socket.emit('join', { username, room }, (error) => {
-    if (error) {
-        alert(error)
-        location.href = './'
-    }
+// Handle page unload
+window.addEventListener('beforeunload', () => {
+    leaveRoom()
 })
+
+// Initialize
+joinRoom(username, room)

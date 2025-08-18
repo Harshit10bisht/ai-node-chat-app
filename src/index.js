@@ -1,118 +1,159 @@
 const path = require('path')
-const http = require('http')
 const express = require('express')
-const socketio = require('socket.io')
 const Filter = require('bad-words')
 const { generateMessage, generateLocationMessage } = require('./utils/messages')
 const { addUser, removeUser, getUser, getUsersInRoom } = require('./utils/users')
 const { generateAIResponse, isAgentMessage } = require('./utils/aiAgent')
+const { triggerToRoom, EVENTS } = require('./utils/pusher')
+const config = require('../config')
 
 const app = express()
-const server = http.createServer(app)
-
-// Configure Socket.IO for Vercel serverless environment
-const io = socketio(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    },
-    transports: ['polling'], // Force polling for serverless compatibility
-    allowEIO3: true,
-    pingTimeout: 60000,
-    pingInterval: 25000
-})
-
 const port = process.env.PORT || 3000
 const publicDirectoryPath = path.join(__dirname, '../public')
 
 app.use(express.static(publicDirectoryPath))
+app.use(express.json())
 
-// Health check endpoint for Vercel
+// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    console.log('New Websocket connection:', socket.id)
+// Pusher configuration endpoint (safe to expose key and cluster)
+app.get('/api/pusher-config', (req, res) => {
+    if (!config.PUSHER_KEY || !config.PUSHER_CLUSTER) {
+        return res.status(500).json({ error: 'Pusher not configured' })
+    }
 
-    socket.on('join', ({ username, room }, callback) => {
-        const { error, user } = addUser({ id: socket.id, username, room })
+    res.json({
+        key: config.PUSHER_KEY,
+        cluster: config.PUSHER_CLUSTER
+    })
+})
 
-        if (error) {
-            return callback(error)
+// API endpoint for joining a room
+app.post('/api/join', (req, res) => {
+    const { username, room } = req.body
+
+    if (!username || !room) {
+        return res.status(400).json({ error: 'Username and room are required' })
+    }
+
+    const { error, user } = addUser({ id: Date.now().toString(), username, room })
+
+    if (error) {
+        return res.status(400).json({ error })
+    }
+
+    // Send welcome message to the user
+    triggerToRoom(room, EVENTS.MESSAGE, generateMessage('Admin', 'Welcome!'))
+
+    // Notify others in the room
+    triggerToRoom(room, EVENTS.USER_JOINED, {
+        message: generateMessage('Admin', `New joined member is ${user.username}`),
+        user: user
+    })
+
+    // Update room data
+    triggerToRoom(room, EVENTS.ROOM_DATA, {
+        room: user.room,
+        users: getUsersInRoom(user.room)
+    })
+
+    res.json({ success: true, user })
+})
+
+// API endpoint for sending messages
+app.post('/api/message', async (req, res) => {
+    const { userId, message } = req.body
+
+    if (!userId || !message) {
+        return res.status(400).json({ error: 'User ID and message are required' })
+    }
+
+    const user = getUser(userId)
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+    }
+
+    const filter = new Filter()
+    if (filter.isProfane(message)) {
+        return res.status(400).json({ error: 'Profanity is not allowed' })
+    }
+
+    // Check if this is an AI agent message
+    if (isAgentMessage(message)) {
+        try {
+            // Send the user's message first
+            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message))
+
+            // Generate AI response
+            const aiResponse = await generateAIResponse(message, user.room, user.username)
+
+            // Send AI response
+            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage('Agent', aiResponse))
+
+            res.json({ success: true })
+        } catch (error) {
+            console.error('AI Agent Error:', error)
+            res.status(500).json({ error: 'Error processing AI request' })
         }
+    } else {
+        // Regular message
+        triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message))
+        res.json({ success: true })
+    }
+})
 
-        socket.join(user.room)
-        socket.emit('message', generateMessage('Admin', 'Welcome!'))
-        socket.broadcast.to(user.room).emit('message', generateMessage('Admin', 'New joined member is ' + user.username))
-        io.to(user.room).emit('roomData', {
+// API endpoint for sending location
+app.post('/api/location', (req, res) => {
+    const { userId, coords } = req.body
+
+    if (!userId || !coords) {
+        return res.status(400).json({ error: 'User ID and coordinates are required' })
+    }
+
+    const user = getUser(userId)
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+    }
+
+    const locationMessage = generateLocationMessage(
+        user.username,
+        `https://google.com/maps?q=${coords.latitude},${coords.longitude}`
+    )
+
+    triggerToRoom(user.room, EVENTS.LOCATION_MESSAGE, locationMessage)
+    res.json({ success: true })
+})
+
+// API endpoint for leaving a room
+app.post('/api/leave', (req, res) => {
+    const { userId } = req.body
+
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' })
+    }
+
+    const user = removeUser(userId)
+    if (user) {
+        triggerToRoom(user.room, EVENTS.USER_LEFT, {
+            message: generateMessage('Admin', `A user who left was ${user.username}`),
+            user: user
+        })
+
+        triggerToRoom(user.room, EVENTS.ROOM_DATA, {
             room: user.room,
             users: getUsersInRoom(user.room)
         })
+    }
 
-        callback()
-    })
-
-    socket.on('sendMessage', async (message, callback) => {
-        const user = getUser(socket.id)
-        const filter = new Filter()
-
-        if (filter.isProfane(message)) {
-            return callback('Profanity is not allowed')
-        }
-
-        // Check if this is an AI agent message
-        if (isAgentMessage(message)) {
-            try {
-                // Send the user's message first
-                io.to(user.room).emit('message', generateMessage(user.username, message))
-
-                // Generate AI response
-                const aiResponse = await generateAIResponse(message, user.room, user.username)
-
-                // Send AI response
-                io.to(user.room).emit('message', generateMessage('Agent', aiResponse))
-
-                callback()
-            } catch (error) {
-                console.error('AI Agent Error:', error)
-                callback('Error processing AI request')
-            }
-        } else {
-            // Regular message
-            io.to(user.room).emit('message', generateMessage(user.username, message))
-            callback()
-        }
-    })
-
-    socket.on('sendLocation', (coords, callback) => {
-        const user = getUser(socket.id)
-        io.to(user.room).emit('locationMessage', generateLocationMessage(user.username, 'https://google.com/maps?q=' + coords.latitude + ',' + coords.longitude))
-        callback()
-    })
-
-    socket.on('disconnect', () => {
-        const user = removeUser(socket.id)
-
-        if (user) {
-            io.to(user.room).emit('message', generateMessage('Admin', 'A user who left was' + user.username))
-            io.to(user.room).emit('roomData', {
-                room: user.room,
-                users: getUsersInRoom(user.room)
-            })
-        }
-    })
-
-    // Handle connection errors
-    socket.on('error', (error) => {
-        console.error('Socket error:', error)
-    })
+    res.json({ success: true })
 })
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {
-    server.listen(port, () => {
+    app.listen(port, () => {
         console.log('Server is up on port ' + port)
     })
 }

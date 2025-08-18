@@ -8,17 +8,13 @@
   ],
   "routes": [
     {
-      "src": "/socket.io/(.*)",
-      "dest": "src/index.js"
-    },
-    {
       "src": "/(.*)",
       "dest": "src/index.js"
     }
   ],
   "functions": {
     "src/index.js": {
-      "maxDuration": 60
+      "maxDuration": 30
     }
   }
 } 
