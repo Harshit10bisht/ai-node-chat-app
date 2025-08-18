@@ -95,16 +95,16 @@ button:disabled {
 .emoji-button {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     border-radius: 50%;
-    width: 48px;
+    width: 75px;
     height: 48px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    margin-left: 12px;
     box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .emoji-button:hover {
@@ -287,14 +287,16 @@ button:disabled {
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(139, 92, 246, 0.2);
     align-items: center;
+    gap: 16px;
 }
 
 .compose form {
     display: flex;
     flex-grow: 1;
-    margin-right: 16px;
+    margin-right: 0;
     min-width: 0;
     align-items: center;
+    gap: 16px;
 }
 
 .compose input {
@@ -302,7 +304,7 @@ button:disabled {
     background: #050206;
     width: 100%;
     padding: 14px 16px;
-    margin: 0 16px 0 0;
+    margin: 0;
     flex-grow: 1;
     min-width: 0;
     border-radius: 12px;
@@ -319,6 +321,17 @@ button:disabled {
     flex-shrink: 0;
     border-radius: 12px;
     padding: 14px 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#send-location {
+    height: 48px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    flex-shrink: 0;
 }
 
 /* Chat Sidebar Styles */

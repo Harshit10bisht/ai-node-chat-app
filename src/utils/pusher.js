@@ -1,14 +1,24 @@
 const Pusher = require('pusher')
 const config = require('../../config')
 
-// Initialize Pusher server instance
-const pusher = new Pusher({
-     appId: config.PUSHER_APP_ID,
-     key: config.PUSHER_KEY,
-     secret: config.PUSHER_SECRET,
-     cluster: config.PUSHER_CLUSTER,
-     useTLS: true
-})
+// Check if Pusher is configured
+const isPusherConfigured = config.PUSHER_APP_ID && config.PUSHER_KEY && config.PUSHER_SECRET && config.PUSHER_CLUSTER
+
+// Initialize Pusher server instance only if configured
+let pusher = null
+if (isPusherConfigured) {
+     try {
+          pusher = new Pusher({
+               appId: config.PUSHER_APP_ID,
+               key: config.PUSHER_KEY,
+               secret: config.PUSHER_SECRET,
+               cluster: config.PUSHER_CLUSTER,
+               useTLS: true
+          })
+     } catch (error) {
+          console.error('Failed to initialize Pusher:', error)
+     }
+}
 
 // Channel names
 const CHANNELS = {
@@ -27,11 +37,31 @@ const EVENTS = {
 
 // Helper functions
 function triggerToRoom(room, event, data) {
-     return pusher.trigger(`room-${room}`, event, data)
+     if (!pusher) {
+          console.warn('Pusher not configured, skipping event:', event)
+          return Promise.resolve()
+     }
+
+     try {
+          return pusher.trigger(`room-${room}`, event, data)
+     } catch (error) {
+          console.error('Error triggering Pusher event:', error)
+          return Promise.resolve()
+     }
 }
 
 function triggerToUser(userId, event, data) {
-     return pusher.trigger(`private-user-${userId}`, event, data)
+     if (!pusher) {
+          console.warn('Pusher not configured, skipping event:', event)
+          return Promise.resolve()
+     }
+
+     try {
+          return pusher.trigger(`private-user-${userId}`, event, data)
+     } catch (error) {
+          console.error('Error triggering Pusher event:', error)
+          return Promise.resolve()
+     }
 }
 
 module.exports = {
@@ -39,5 +69,6 @@ module.exports = {
      CHANNELS,
      EVENTS,
      triggerToRoom,
-     triggerToUser
+     triggerToUser,
+     isPusherConfigured
 }
