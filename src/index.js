@@ -8,6 +8,7 @@ const { triggerToRoom, EVENTS } = require('./utils/pusher')
 const config = require('../config')
 
 const app = express()
+
 const port = process.env.PORT || 3000
 const publicDirectoryPath = path.join(__dirname, '../public')
 
@@ -46,11 +47,11 @@ app.post('/api/join', (req, res) => {
     }
 
     // Send welcome message to the user
-    triggerToRoom(room, EVENTS.MESSAGE, generateMessage('Admin', 'Welcome!'))
+    triggerToRoom(room, EVENTS.MESSAGE, generateMessage('Admin', 'Welcome!', '👋'))
 
     // Notify others in the room
     triggerToRoom(room, EVENTS.USER_JOINED, {
-        message: generateMessage('Admin', `New joined member is ${user.username}`),
+        message: generateMessage('Admin', `New joined member is ${user.username}`, '👋'),
         user: user
     })
 
@@ -85,13 +86,13 @@ app.post('/api/message', async (req, res) => {
     if (isAgentMessage(message)) {
         try {
             // Send the user's message first
-            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message))
+            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message, user.emoji))
 
             // Generate AI response
             const aiResponse = await generateAIResponse(message, user.room, user.username)
 
             // Send AI response
-            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage('Agent', aiResponse))
+            triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage('Agent', aiResponse, '🤖'))
 
             res.json({ success: true })
         } catch (error) {
@@ -100,7 +101,7 @@ app.post('/api/message', async (req, res) => {
         }
     } else {
         // Regular message
-        triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message))
+        triggerToRoom(user.room, EVENTS.MESSAGE, generateMessage(user.username, message, user.emoji))
         res.json({ success: true })
     }
 })
@@ -120,7 +121,8 @@ app.post('/api/location', (req, res) => {
 
     const locationMessage = generateLocationMessage(
         user.username,
-        `https://google.com/maps?q=${coords.latitude},${coords.longitude}`
+        `https://google.com/maps?q=${coords.latitude},${coords.longitude}`,
+        user.emoji
     )
 
     triggerToRoom(user.room, EVENTS.LOCATION_MESSAGE, locationMessage)
@@ -138,7 +140,7 @@ app.post('/api/leave', (req, res) => {
     const user = removeUser(userId)
     if (user) {
         triggerToRoom(user.room, EVENTS.USER_LEFT, {
-            message: generateMessage('Admin', `A user who left was ${user.username}`),
+            message: generateMessage('Admin', `A user who left was ${user.username}`, '👋'),
             user: user
         })
 
