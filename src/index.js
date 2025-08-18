@@ -12,18 +12,27 @@ const app = express()
 const port = process.env.PORT || 3000
 const publicDirectoryPath = path.join(__dirname, '../public')
 
+// Middleware
 app.use(express.static(publicDirectoryPath))
 app.use(express.json())
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        pusher: {
+            configured: !!(config.PUSHER_KEY && config.PUSHER_CLUSTER)
+        }
+    })
 })
 
 // Pusher configuration endpoint (safe to expose key and cluster)
 app.get('/api/pusher-config', (req, res) => {
     if (!config.PUSHER_KEY || !config.PUSHER_CLUSTER) {
-        return res.status(500).json({ error: 'Pusher not configured' })
+        return res.status(500).json({
+            error: 'Pusher not configured. Please set PUSHER_KEY and PUSHER_CLUSTER environment variables.'
+        })
     }
 
     res.json({
@@ -157,6 +166,7 @@ app.post('/api/leave', (req, res) => {
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
         console.log('Server is up on port ' + port)
+        console.log('Pusher configured:', !!(config.PUSHER_KEY && config.PUSHER_CLUSTER))
     })
 }
 
