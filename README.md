@@ -1,4 +1,4 @@
-# Real-Time Chat Application
+# Real-Time Chat Application (Mainly backend topics focused)
 
 A modern, real-time chat application built with Node.js, Express, and Pusher, featuring AI integration, beautiful typography, and a responsive design.
 
