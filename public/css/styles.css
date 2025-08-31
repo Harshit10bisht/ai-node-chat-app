@@ -15,18 +15,23 @@ input {
 }
 
 body {
-    line-height: 1.4;
+    line-height: 1.6;
     color: #ffffff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #10061a 0%, #211239 50%, #10061c 100%);
     min-height: 100vh;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 h1 {
     margin-bottom: 16px;
     color: #ffffff;
-    font-weight: 300;
-    letter-spacing: 1px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    font-size: 2rem;
+    line-height: 1.2;
 }
 
 label {
@@ -35,6 +40,7 @@ label {
     margin-bottom: 8px;
     color: #b8a9d9;
     font-weight: 500;
+    letter-spacing: 0.025em;
 }
 
 input {
@@ -46,6 +52,8 @@ input {
     border-radius: 12px;
     transition: all 0.3s ease;
     font-size: 14px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-weight: 400;
 }
 
 input:focus {
@@ -69,7 +77,8 @@ button {
     border-radius: 12px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.025em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 button:hover {
@@ -254,6 +263,8 @@ button:disabled {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    letter-spacing: 0.025em;
 }
 
 .message__name::first-letter {
@@ -263,6 +274,8 @@ button:disabled {
 .message__meta {
     color: #9ca3af;
     font-size: 14px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-weight: 400;
 }
 
 .message a {
@@ -337,7 +350,7 @@ button:disabled {
 /* Chat Sidebar Styles */
 
 .room-title {
-    font-weight: 400;
+    font-weight: 600;
     font-size: 22px;
     background: rgba(16, 6, 28, 0.9);
     padding: 24px;   
@@ -345,9 +358,10 @@ button:disabled {
     overflow-wrap: break-word;
     border-bottom: 1px solid rgba(139, 92, 246, 0.2);
     color: #ffffff;
-    letter-spacing: 0.5px;
+    letter-spacing: -0.025em;
     text-transform: uppercase;
     position: relative;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 .room-title::before {
@@ -357,17 +371,20 @@ button:disabled {
 }
 
 .list-title {
-    font-weight: 500;
+    font-weight: 600;
     font-size: 18px;
     margin-bottom: 4px;
     padding: 12px 24px 0 24px;
     color: #b8a9d9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    letter-spacing: 0.025em;
 }
 
 .users {
     list-style-type: none;
-    font-weight: 300;
+    font-weight: 400;
     padding: 12px 24px 0 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 .users li {
