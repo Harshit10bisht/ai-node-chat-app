@@ -2,6 +2,10 @@
 
 A modern, real-time chat application built with Node.js, Express, and Pusher, featuring AI integration, beautiful typography, and a responsive design.
 
+<img width="1920" height="1080" alt="Working_Chat_1" src="https://github.com/user-attachments/assets/fbb78d48-5fc7-4a52-ae2e-b24297aa7531" />
+<img width="1920" height="1080" alt="Working_Chat_2" src="https://github.com/user-attachments/assets/2d445ad4-94e3-45b5-90a8-7bacfb940a18" />
+
+
 ## ✨ Features
 
 - **Real-time messaging** with Pusher integration
