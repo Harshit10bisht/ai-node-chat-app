@@ -295,14 +295,8 @@ app.post('/api/leave', (req, res) => {
     }
 })
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(port, () => {
-        console.log('Server is up on port ' + port)
-        console.log('Pusher configured:', !!(config.PUSHER_KEY && config.PUSHER_CLUSTER))
-        console.log('AI configured:', !!(config.OPENAI_API_KEY || config.OPENROUTER_API_KEY))
-    })
-}
+app.listen(port, () => {
+    console.log('Server is up on port ' + port)
+});
 
-// For Vercel deployment
-module.exports = app
+// module.exports = app
