@@ -142,6 +142,112 @@ const autoScroll = () => {
     }
 }
 
+// Function to load previous messages
+async function loadPreviousMessages(room) {
+    try {
+        const response = await fetch(`/api/room-messages/${room}`)
+        const data = await response.json()
+
+        if (data.success && data.messages) {
+            // Clear existing messages
+            $messages.innerHTML = ''
+
+            // Render all previous messages
+            data.messages.forEach(message => {
+                if (message.url) {
+                    // Location message
+                    const html = Mustache.render(locationMessageTemplates, {
+                        username: message.username,
+                        url: message.url,
+                        emoji: message.emoji || '👤',
+                        createdAt: moment(message.createdAt).format('h:mm A')
+                    })
+                    $messages.insertAdjacentHTML('beforeend', html)
+                } else {
+                    // Regular message
+                    const html = Mustache.render(messageTemplates, {
+                        username: message.username,
+                        message: message.text,
+                        emoji: message.emoji || '👤',
+                        createdAt: moment(message.createdAt).format('h:mm A')
+                    })
+                    $messages.insertAdjacentHTML('beforeend', html)
+                }
+            })
+
+            // Scroll to bottom after loading messages
+            autoScroll()
+        }
+    } catch (error) {
+        console.error('Error loading previous messages:', error)
+    }
+}
+
+// Function to load room data
+async function loadRoomData(room) {
+    try {
+        const response = await fetch(`/api/room-data/${room}`)
+        const data = await response.json()
+
+        if (data.success && data.roomData) {
+            // Update room title
+            const roomTitle = document.querySelector('.room-title')
+            if (roomTitle) {
+                roomTitle.textContent = data.roomData.room
+            }
+
+            // Update users list
+            const usersList = document.querySelector('#users')
+            if (usersList) {
+                let usersHtml = ''
+                data.roomData.users.forEach(user => {
+                    usersHtml += `<li>${user.emoji} ${user.username}</li>`
+                })
+                usersList.innerHTML = usersHtml
+            }
+        }
+    } catch (error) {
+        console.error('Error loading room data:', error)
+    }
+}
+
+// Function to load AI limit information
+async function loadAILimit(userId) {
+    try {
+        const response = await fetch(`/api/ai-limit/${userId}`)
+        const data = await response.json()
+
+        if (data.success) {
+            const aiLimitDiv = document.querySelector('#ai-limit')
+            const aiRemaining = document.querySelector('#ai-remaining')
+            const aiTotal = document.querySelector('#ai-total')
+
+            if (aiLimitDiv && aiRemaining && aiTotal) {
+                aiRemaining.textContent = data.remaining
+                aiTotal.textContent = data.limit
+
+                // Show/hide based on remaining requests
+                if (data.remaining < data.limit) {
+                    aiLimitDiv.style.display = 'block'
+                } else {
+                    aiLimitDiv.style.display = 'none'
+                }
+
+                // Change color based on remaining requests
+                if (data.remaining === 0) {
+                    aiLimitDiv.style.color = '#ff6b6b'
+                } else if (data.remaining <= 1) {
+                    aiLimitDiv.style.color = '#ffa726'
+                } else {
+                    aiLimitDiv.style.color = '#4caf50'
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading AI limit:', error)
+    }
+}
+
 // Join room function
 async function joinRoom(username, room) {
     try {
@@ -171,8 +277,17 @@ async function joinRoom(username, room) {
         currentUser = data.user
         currentRoom = room
 
+        // Load previous messages first
+        await loadPreviousMessages(room)
+
         // Subscribe to room channel
         const channel = pusher.subscribe(`room-${room}`)
+
+        // Load room data after subscribing
+        await loadRoomData(room)
+
+        // Load AI limit information
+        await loadAILimit(currentUser.id)
 
         // Listen for messages
         channel.bind('message', (message) => {
@@ -268,6 +383,11 @@ async function sendMessage(message) {
         if (data.error) {
             console.log(data.error)
             return false
+        }
+
+        // If this was an AI request, refresh the AI limit display
+        if (message.startsWith('@Agent')) {
+            await loadAILimit(currentUser.id)
         }
 
         return true

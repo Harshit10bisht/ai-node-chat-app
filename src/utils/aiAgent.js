@@ -43,7 +43,7 @@ async function generateAIResponse(message, room, username) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: cleanMessage }
                ],
-               max_tokens: 150,
+               max_tokens: 500,
                temperature: 0.7
           })
           return completion.choices?.[0]?.message?.content || "(No response)"

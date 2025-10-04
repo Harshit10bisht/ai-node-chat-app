@@ -1,0 +1,1 @@
+﻿{"projectName":"chat-app","version":"3.0","frontend":"javascript","framework":"none","config":{"SourceDir":"public","DistributionDir":"public","BuildCommand":"npm run build","StartCommand":"npm run start"}}
