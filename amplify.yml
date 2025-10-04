@@ -20,4 +20,10 @@ backend:
   phases:
     build:
       commands:
+        - echo "Installing backend dependencies..."
+        - npm install
         - echo "Backend build completed"
+    start:
+      commands:
+        - echo "Starting backend server..."
+        - node src/index.js
